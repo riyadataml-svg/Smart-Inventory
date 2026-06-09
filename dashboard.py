@@ -6,11 +6,20 @@ from database import get_connection
 st.set_page_config(page_title="Smart Inventory Dashboard", page_icon="📦", layout="wide")
 
 # Connect to database using existing database.py
-@st.cache_resource
+@st.cache_resource(ttl=600)
 def init_connection():
     return get_connection()
 
 conn = init_connection()
+
+# Ping the database to reconnect if it dropped due to being idle
+if conn is not None:
+    try:
+        conn.ping(reconnect=True, attempts=3, delay=1)
+    except Exception:
+        # If ping fails, force a new connection
+        st.cache_resource.clear()
+        conn = init_connection()
 
 # --- LOGIN SYSTEM ---
 def check_password():
